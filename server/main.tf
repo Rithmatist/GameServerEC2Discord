@@ -45,6 +45,16 @@ locals {
       sg_ingress_rules          = {}
       watch_connections         = coalesce(var.watch_connections, false)
     }
+    "minecraft-bedrock" = {
+      game_name                 = "Minecraft Bedrock"
+      instance_type             = coalesce(var.instance_type, "c7i.large")
+      arch                      = coalesce(var.arch, "x86_64")
+      data_volume_size          = coalesce(var.data_volume_size, 3)
+      compose_main_service_name = "bedrock"
+      main_port                 = coalesce(var.main_port, 19132)
+      sg_ingress_rules          = {}
+      watch_connections         = coalesce(var.watch_connections, true)
+    }
     terraria = {
       game_name                 = "Terraria"
       instance_type             = coalesce(var.instance_type, "m8g.medium")
@@ -174,6 +184,33 @@ locals {
         INIT_MEMORY : "6200M"
         MAX_MEMORY : "6200M"
       }, var.compose_game_environment)
+      volumes : [
+        "${local.data_subfolder_path}:/data"
+      ]
+      deploy : {
+        resources : {
+          limits : var.compose_game_limits
+        }
+      }
+      restart : "no"
+      stop_grace_period : "1m"
+    }
+    "minecraft-bedrock" = {
+      container_name : "minecraft-bedrock",
+      image : "itzg/minecraft-bedrock-server",
+      tty : true,
+      stdin_open : true,
+      ports : concat(["19132:19132/udp"], coalesce(var.compose_game_ports, []))
+      environment : merge({
+        EULA : true
+        SERVER_PORT : 19132
+        SERVER_NAME : var.id
+        GAMEMODE : "survival"
+        DIFFICULTY : "easy"
+        ALLOW_CHEATS : false
+        MAX_PLAYERS : 10
+        VIEW_DISTANCE : 32
+      }, var.instance_timezone != null ? { TZ : var.instance_timezone } : {}, var.compose_game_environment)
       volumes : [
         "${local.data_subfolder_path}:/data"
       ]

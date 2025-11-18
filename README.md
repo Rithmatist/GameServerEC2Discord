@@ -55,7 +55,8 @@ https://github.com/user-attachments/assets/e2e63d59-3a4e-4aaa-8513-30243aafa6c4
 
 **Supported**
 
-- Minecraft (via [itzg/docker-minecraft-server](https://github.com/itzg/docker-minecraft-server))
+- Minecraft (Java Edition) (via [itzg/docker-minecraft-server](https://github.com/itzg/docker-minecraft-server))
+- Minecraft Bedrock (via [itzg/docker-minecraft-bedrock-server](https://github.com/itzg/docker-minecraft-bedrock-server))
 - Terraria (via [ryshe/terraria](https://github.com/ryansheehan/terraria))
 - Factorio (via [factoriotools/factorio](https://github.com/factoriotools/factorio-docker))
 - Satisfactory (via [wolveix/satisfactory-server](https://github.com/wolveix/satisfactory-server))
@@ -88,7 +89,7 @@ This is achieved by:
 
 1. Starting the server via Discord slash commands interactions
    - Slash commands work via webhook which don't require a Discord bot running 24/7, so we can use AWS Lambda + Lambda Function URL
-2. Using the Auto-stop feature from [itzg/docker-minecraft-server](https://github.com/itzg/docker-minecraft-server), or watching for active connections in a specific port, alongside a systemd timer
+2. Using the Auto-stop feature from [itzg/docker-minecraft-server](https://github.com/itzg/docker-minecraft-server) (Minecraft Java) or watching for active connections in a specific port (Minecraft Bedrock and other games) alongside a systemd timer
 3. Setting up Duck DNS inside the instance _(No-IP could work too)_
 
 ### Workflow
@@ -104,16 +105,16 @@ After setup, the process of starting and automatically stopping a game server wo
 7. The game systemd service runs the Docker Compose file to start the server
 8. The instance shutdown systemd timer starts checking if the container is running
 9. After a minute or so (depending on the game, instance, etc), the server is ready to connect and play
-10. After 10 minutes without a connection or after the last player disconnects, the server is shutdown automatically via the [Auto-stop feature](https://docker-minecraft-server.readthedocs.io/en/latest/misc/autopause-autostop/autostop/) (Minecraft) or a systemd service (other games).
+10. After 10 minutes without a connection or after the last player disconnects, the server is shutdown automatically via the [Auto-stop feature](https://docker-minecraft-server.readthedocs.io/en/latest/misc/autopause-autostop/autostop/) (Minecraft Java) or the connection watcher systemd service (Minecraft Bedrock and other games).
 11. After a minute or so, the instance shutdown systemd timer/service notices that the container is stopped and shuts down the whole instance.
 
 ### Diagram
 
-Minecraft:
+Minecraft (Java Edition):
 ![diagram](https://github.com/g-otn/GameServerEC2Discord/assets/44736064/d7a4a2d6-4eae-4e5b-a44d-88fc9ab10d0a)
 
 <details>
-  <summary>Other games</summary>
+  <summary>Other games (including Minecraft Bedrock)</summary>
 
 ![diagram others](https://github.com/user-attachments/assets/d3ba7882-f58f-46ec-bfaf-8d7dea6e832b)
 
@@ -374,7 +375,7 @@ You'll need to set these for each server you want to create.
 | Name       | Description                                                                                                                                                                                                         |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`       | Unique alphanumeric id for the server                                                                                                                                                                               |
-| `game`     | The game this server is going to host. Valid values: `linuxgsm`, `minecraft`, `terraria`, `factorio`, `valheim`, `palworld`, `custom`. **Read [LinuxGSM](#linuxgsm) or [Custom game](#custom-game) if applicable.** |
+| `game`     | The game this server is going to host. Valid values: `linuxgsm`, `minecraft`, `minecraft-bedrock`, `terraria`, `factorio`, `satisfactory`, `valheim`, `palworld`, `custom`. **Read [LinuxGSM](#linuxgsm) or [Custom game](#custom-game) if applicable.** |
 | `az`       | Which availability zone from the chosen region to place the server in. It may be significant price-wise.                                                                                                            |
 | `hostname` | Full hostname to be used. (e.g "myserver.duckdns.org"). Required unless DDNS is `none`                                                                                                                              |
 
@@ -388,8 +389,9 @@ Other "Common values" are also required but are the same between servers or/and 
 
 - [Custom server](./examples/custom.tf)
 - [Factorio server via LinuxGSM](./examples/linuxgsm_factorio.tf.tf)
-- [Minecraft server](./examples/minecraft.tf)
-- [Minecraft server with plugins, etc](./examples/minecraft_full.tf)
+- [Minecraft (Java) server](./examples/minecraft.tf)
+- [Minecraft (Java) server with plugins, etc](./examples/minecraft_full.tf)
+- [Minecraft Bedrock server](./examples/minecraft_bedrock.tf)
 - [Palworld](./examples/palworld.tf)
 - [Valheim](./examples/valheim.tf)
 
@@ -513,9 +515,9 @@ Check also [Useful info and commands](#useful-info-and-commands).
 Please read if applicable!
 
 <details>
-  <summary>Minecraft</summary>
+  <summary>Minecraft (Java Edition)</summary>
 
-### Minecraft post-setup
+### Minecraft (Java Edition) post-setup
 
 You should at least set up a whitelist so only your friends can join the server.
 
@@ -545,14 +547,31 @@ Finally, save around 600MiB-1GiB for the JVM / Off-heap memory. Examples:
 | 4GiB            | 3.8GiB           | **3.6GB**               | **2.8GB** | 1-4                           |
 | 8GiB            | 7.8GiB           | **7.6GB**               | **6.2GB** | 2-8                           |
 
-### Recommended Minecraft server plugins
+### Recommended Minecraft (Java Edition) server plugins
 
 - [DiscordSRV](https://modrinth.com/plugin/discordsrv) - We're already using Discord, so why not? However it seems this plugin overrides the interactions, so you'll have to create another Discord app on the developer portal just for this. See [Installation](https://docs.discordsrv.com/installation/initial-setup)
 - [AFK-Kicker](https://modrinth.com/plugin/afk-kicker) - Or any other plugin which can kick afk players, so the server doesn't stays on if nobody is playing
 - [TabTPS](https://modrinth.com/plugin/tabtps) - Or any other plugin for easy in-game information display of server load, etc
 
 > [!TIP]
-> For Minecraft servers, once you run the docker compose once, you can comment the `PLUGINS` option from the docker compose file inside the instance, to avoid errors if the plugin every fails to download or check for updates. (Until of course, you want to add/remove a plugin)
+> For Minecraft (Java Edition) servers, once you run the docker compose once, you can comment the `PLUGINS` option from the docker compose file inside the instance, to avoid errors if the plugin every fails to download or check for updates. (Until of course, you want to add/remove a plugin)
+
+</details>
+
+<details>
+  <summary>Minecraft Bedrock</summary>
+
+### Minecraft Bedrock post-setup
+
+Bedrock servers should use an allowlist as well so random players can't join.
+
+1. Connect to your running server instance using SSH (See [SSH](#ssh))
+2. Attach to the Bedrock console with `docker attach minecraft-bedrock` and run `allowlist add "<Gamertag>"` for every player
+3. Alternatively edit `/srv/minecraft-bedrock/data/allowlist.json` and `/srv/minecraft-bedrock/data/permissions.json` to curate the allowlist and operator roles manually
+4. Update `/srv/minecraft-bedrock/data/server.properties` or pass values via `compose_game_environment` to set things like the server name, difficulty, online mode or custom ports (see the [container docs](https://github.com/itzg/docker-minecraft-bedrock-server#environment-variables))
+
+> [!NOTE]
+> The upstream Bedrock dedicated server only ships for x86_64, so if you override the defaults keep `arch = "x86_64"` (and use a compatible instance type).
 
 </details>
 
@@ -911,16 +930,16 @@ ssh -i "~/.ssh/<my private key>.pem" "ec2-user@<myserver>.duckdns.org"
 
 These notes and commands are for when you are connected to the instance via SSH.
 
-Game data EBS volume is mounted at `/srv/<game id>` (e.g `/srv/minecraft`);
+Game data EBS volume is mounted at `/srv/<game id>` (e.g `/srv/minecraft` or `/srv/minecraft-bedrock`);
 
-Docker compose container name is `<game id>-<game main service name>-1` (e.g `minecraft`)
+Docker compose container name is `<game id>-<game main service name>-1` (e.g `minecraft` or `minecraft-bedrock`)
 
-Commands (using Minecraft server as an example):
+Commands (using the Minecraft (Java) server as an example):
 
 - `htop`: Task manager / resource usage viewer
 - `docker stats`: Shows current RAM usage vs deploy limit
-- [`docker attach minecraft](https://docker-minecraft-server.readthedocs.io/en/latest/commands/#enabling-interactive-console): (Minecraft only) Attach terminal to Minecraft server console
-- `docker logs minecraft -f`: Latest logs from the container
+- [`docker attach minecraft`](https://docker-minecraft-server.readthedocs.io/en/latest/commands/#enabling-interactive-console) / `docker attach minecraft-bedrock`: Attach terminal to the Minecraft (Java/Bedrock) server console
+- `docker logs minecraft -f` / `docker logs minecraft-bedrock -f`: Latest logs from the container
 - `sudo systemctl stop auto_shutdown.timer`: Stops the systemd timer which prevents the instance from being shut down automatically until next reboot. Don't forget to shutdown/reboot manually or start the timer again!
 - `sudo conntrack -L --dst-nat | grep -w <game main port> | grep -w ESTABLISHED`: Lists currently estabilished network connections with the container
 
@@ -941,6 +960,7 @@ This project was made for studying purposes mainly. The following repos and arti
 - [mamoit/minecraft-ondemand-terraform](https://github.com/mamoit/minecraft-ondemand-terraform) - I almost went with this solution instead of creating my own, but I wanted to use EC2 directly instead of ECS + Fargate for slightly cheaper costs
 - [Lemmons/minecraft-spot](https://github.com/Lemmons/minecraft-spot/) - Some Cloud-init and Terraform reference
 - [vincss/mcEmptyServerStopper](https://github.com/vincss/mcEmptyServerStopper) - I was using this before I migrated to Docker and [itzg/docker-minecraft-server](https://github.com/itzg/docker-minecraft-server)
+- [itzg/docker-minecraft-bedrock-server](https://github.com/itzg/docker-minecraft-bedrock-server) - Bedrock container support
 - [Giving kids control of an EC2 instance via discord
   ](https://drpump.github.io/ec2-discord-bot/) - Gave me the push to use Discord to reduce costs and simplify some of the workflow, and almost made me use GCP instead of AWS
 - Thanks megamush in the AWS Discord for giving me some help and suggestions

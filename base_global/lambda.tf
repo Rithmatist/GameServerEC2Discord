@@ -4,14 +4,14 @@ module "lambda_handle_interaction" {
 
   function_name = "${local.prefix}-handle-interaction"
   description   = "Handles Discord slash commands interactions to manage the server's instance"
-  handler       = "index.handler"
-  runtime       = "nodejs20.x"
+  handler       = "handler.handler"
+  runtime       = "python3.12"
   architectures = ["arm64"]
 
   publish                    = true
   create_lambda_function_url = true
 
-  source_path = "base_global/lambda/handle-interaction/build/index.js"
+  source_path = "base_global/lambda/handle-interaction"
 
   cloudwatch_logs_retention_in_days = 30
   tracing_mode                      = "Active"
@@ -33,14 +33,14 @@ module "lambda_manage_instance" {
 
   function_name = "${local.prefix}-manage-instance"
   description   = "Execute commands to manage EC2 instance and updates Discord interaction follow-up message"
-  handler       = "index.handler"
-  runtime       = "nodejs20.x"
+  handler       = "handler.handler"
+  runtime       = "python3.12"
   architectures = ["arm64"]
   timeout       = 5
 
   publish = true
 
-  source_path = "base_global/lambda/manage-instance/build/index.js"
+  source_path = "base_global/lambda/manage-instance"
 
   cloudwatch_logs_retention_in_days = 30
   tracing_mode                      = "Active"

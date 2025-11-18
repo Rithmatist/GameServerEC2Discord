@@ -297,7 +297,7 @@ Requirements:
 
 - Terraform 1.9+
 - Python 3.6+ (due to [terraform-aws-lambda](https://github.com/terraform-aws-modules/terraform-aws-lambda))
-- Node.js 18+ (to compile Lambda functions)
+- Python 3.11+ (to run helper scripts and package the Lambda functions)
 
 ### (Recommended) Creating an AWS billing alarm
 
@@ -321,12 +321,20 @@ git clone https://github.com/g-otn/GameServerEC2Discord.git && cd GameServerEC2D
 terraform init
 ```
 
-3.  Install Node.js dependencies to manually build the lambda functions
+3.  Prepare Python dependencies for the helper scripts and Lambda packages
 
 ```
-npm i
-npm run build --workspaces
+python -m venv .venv
+# Windows
+.\.venv\Scripts\activate
+# Linux/macOS
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -r base_global/lambda/handle-interaction/requirements.txt -t base_global/lambda/handle-interaction
+pip install -r base_global/lambda/manage-instance/requirements.txt -t base_global/lambda/manage-instance
 ```
+
+The last two commands vendor the Lambda dependencies into their respective folders so the Terraform module can zip everything automatically.
 
 ### Terraform variables
 
@@ -417,13 +425,13 @@ This is techinically optional, but to make starting your server easier, you coul
 
 9. Invite your app to a Discord server (guild) using the OAuth2 link found at Installation. Make sure `applications.commands` is set in the Default Install Settings.
 
-10. In the project top folder create a `.env` file
+10. In the project top folder create a `.env` file (optional but recommended so the helper scripts can read your credentials automatically)
 
 ```
 touch .env
 ```
 
-11. Fill the environment variables required by [`add-slash-commands.js`](scripts/add-slash-commands.js):
+11. Fill the environment variables required by [`scripts/add_slash_commands.py`](scripts/add_slash_commands.py):
 
 ```ini
 DISCORD_APP_ID=123456789
@@ -432,19 +440,19 @@ DISCORD_APP_BOT_TOKEN=MTABCDE
 
 Guild ID is the Discord server ID; App ID and bot token can be found in the [Discord Developer Portal](https://discord.com/developers/applications/).
 
-12. Create the `servers.json` file which will be used to create option choices in the Discord slash commands, by running the `create-servers-file` npm script:
+12. Create the `servers.json` file which will be used to create option choices in the Discord slash commands, by running the helper script:
 
 ```
-npm run create-servers-file
+python scripts/servers_from_tfstate.py
 ```
 
 > [!NOTE]
-> If you're using Terraform workspaces, you can fill the `TF_STATE_PATH` env var in the `.env` file
+> `scripts/servers_from_tfstate.py` also respects a `TF_STATE_PATH` env var (including when defined in `.env`) so you can point it at a specific Terraform state file.
 
 This will do a quick and dirty match on your Terraform state file to
 get the server IDs you created and create a skeleton of the `servers.json` file for you.
 
-If the `create-servers-file` script doesn't work for some reason, you can create the file manually.
+If the script doesn't work for some reason, you can create the file manually.
 
 The `servers.json` file should contain a list of all the servers you created with Terraform, with each list item containing the following information:
 
@@ -456,10 +464,10 @@ For example, the [`server.example.json`](scripts/servers.example.json) file woul
 
 ![server.example.json result](https://github.com/user-attachments/assets/3ac8e0bf-6cbb-4644-901e-1cc106a61a37)
 
-12. After creating the necessary files, run the `setup-discord-app` npm script.
+13. After creating the necessary files, run the helper script to register the commands with Discord.
 
 ```
-npm run setup-discord-app
+python scripts/add_slash_commands.py
 ```
 
 The script should load the `servers.json` file, call the Discord API and register the slash command interactions which the Lambda will be ready to handle:
